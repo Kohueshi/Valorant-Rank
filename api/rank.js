@@ -14,28 +14,27 @@ export default async function handler(req, res) {
   try {
     const response = await fetch(targetUrl);
 
-    // Imprime status para debug
-    console.log("Status API original:", response.status);
+    const contentType = response.headers.get("content-type") || "";
 
     if (!response.ok) {
       const text = await response.text();
-      console.error("Respuesta no OK:", response.status, text);
       return res
-        .status(500)
-        .json({
-          error: "Error en la API original",
-          status: response.status,
-          body: text,
-        });
+        .status(response.status)
+        .json({ error: "Error en la API original", body: text });
     }
 
-    // Intentamos leer el json
-    const data = await response.json();
-
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-
-    res.status(200).json(data);
+    if (contentType.includes("application/json")) {
+      const data = await response.json();
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+      return res.status(200).json(data);
+    } else {
+      // No es JSON, devuelvo texto plano para que el cliente lo reciba como string
+      const text = await response.text();
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+      return res.status(200).send(text);
+    }
   } catch (error) {
     console.error("Error en proxy:", error);
     res
