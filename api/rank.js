@@ -13,15 +13,33 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(targetUrl);
+
+    // Imprime status para debug
+    console.log("Status API original:", response.status);
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Respuesta no OK:", response.status, text);
+      return res
+        .status(500)
+        .json({
+          error: "Error en la API original",
+          status: response.status,
+          body: text,
+        });
+    }
+
+    // Intentamos leer el json
     const data = await response.json();
 
-    // CORS
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
 
     res.status(200).json(data);
   } catch (error) {
-    console.error("Error proxy:", error);
-    res.status(500).json({ error: "Error al obtener datos" });
+    console.error("Error en proxy:", error);
+    res
+      .status(500)
+      .json({ error: "Error al obtener datos", details: error.message });
   }
 }
